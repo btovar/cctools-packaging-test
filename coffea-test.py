@@ -163,23 +163,33 @@ work_queue_executor_args = {
 import time
 tstart = time.time()
 
-workers = Factory("local", manager_host_port="localhost:9123")
+workers = None
+try:
+    workers = Factory("local", manager_host_port="localhost:9123")
+    workers.max_workers = 1
+    workers.min_workers = 1
+    workers.python_package = wq_env_tarball
+    
+    with workers:
+        output = processor.run_uproot_job(
+            fileset,
+            treename='Events',
+            processor_instance=MyProcessor(),
+            executor=processor.work_queue_executor,
+            executor_args=work_queue_executor_args,
+            chunksize=100000,
 
-workers.max_workers = 1
-workers.min_workers = 1
-workers.python_package = wq_env_tarball
-with workers:
-    output = processor.run_uproot_job(
-        fileset,
-        treename='Events',
-        processor_instance=MyProcessor(),
-        executor=processor.work_queue_executor,
-        executor_args=work_queue_executor_args,
-        chunksize=100000,
-
-        # Change this to None for a large run:
-        maxchunks=4,
-    )
+            # Change this to None for a large run:
+            maxchunks=4,
+        )
+except Exception as e:
+    # Ensure cleanup even if factory creation fails
+    if workers is not None:
+        try:
+            workers.shutdown()
+        except:
+            pass
+    raise e
 
 elapsed = time.time() - tstart
 

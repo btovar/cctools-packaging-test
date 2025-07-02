@@ -36,8 +36,21 @@ result=$?
 # leave results in place so that one can debug failures
 #rm results.json results.json.bak.1 shadho_master.debug shadho_master.log
 
-#kill the worker, to be sure
-kill -9 $SHADHO_WORKER_PID
+#kill the worker gracefully, then forcefully if needed
+if kill -TERM $SHADHO_WORKER_PID 2>/dev/null; then
+    # Wait up to 5 seconds for graceful shutdown
+    for i in {1..5}; do
+        if ! kill -0 $SHADHO_WORKER_PID 2>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+    # If still running, force kill
+    kill -9 $SHADHO_WORKER_PID 2>/dev/null
+else
+    # Process already dead, nothing to do
+    echo "Worker process already terminated"
+fi
 
 #deactivate and remove the created environment
 conda deactivate

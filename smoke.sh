@@ -38,7 +38,7 @@ work_queue_worker --single-shot localhost `cat wq.port`
 if diff input.txt output.txt
 then
 	echo "smoke test success"
-	echo 0
+	exit 0
 else
 	echo "smoke test failure"
 	exit 1
